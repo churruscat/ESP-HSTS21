@@ -1,5 +1,5 @@
 /**
-    ESPxxx-12E  (ESP8266/ESP32) manejado desde IBM IoT
+    ESP-HSTS21 ESPP8266/ESP32) manejado desde IBM IoT
     Morrastronics -- by chuRRuscat
     v1.0 2021 initial version
     v3.0 2021 Integrate ESP12 and ESP32, use #define ESP32      
@@ -32,7 +32,7 @@
   #define SDA 21
   #define ADC1_CH0 36  // 
   #define ADC1_CH3 39  // to test when engine is started 
-  #define ampere_PIN ADC1_CH0  
+  #define AMPERE_PIN ADC1_CH0  
   #define RPM_PIN    36 // when engine is started  
 #else    // it is an ESP12 (NodeMCU)
   #include <ESP8266mDNS.h>
@@ -40,7 +40,7 @@
   #include <ArduinoOTA.h>
   #define SDA D5   // for BME280 I2C 
   #define SCL D6
-  #define ampere_PIN A0
+  #define AMPERE_PIN A0
   #define RPM_PIN    D8   // when engine is started 
 #endif
 
@@ -70,7 +70,7 @@ void setup() {
 boolean status;
 int amperes1,amperes2,RPM;
     
-  Serial.begin(115200);
+  Serial.begin(9600);
   DPRINTLN("starting ... "); 
   Wire.begin(SDA,SCL);
   claves["deviceId"]=DEVICE_ID;
@@ -114,7 +114,7 @@ int amperes1,amperes2,RPM;
   claves["deviceId"]=DEVICE_ID;
   claves["location"]=LOCATION;
   delay(50);
-
+  pinMode(RPM_PIN, INPUT); 
 }
 
 uint32_t ultimaRPM=0,ultimaAmpere=0,nMedidas=0;
@@ -154,12 +154,20 @@ void loop() {
 boolean publicaRPM() {
     boolean pubresult=true;
     int RPM;
+    char msg[20];
+    IPAddress broadcastIp(192,168,8,255);
 
-  RPM = analogRead(RPM_PIN);
-  if (RPM>500) RPM=1;
+  RPM = digitalRead(RPM_PIN);
+  if (RPM == HIGH) RPM=1 ;
   else RPM=0;
+  sprintf(msg,"$ERRPM,E,%d,1,1,A*00",RPM);
   clienteUDP.beginPacket(server, UDP_PORT);
-  clienteUDP.print("$ERRPM,E,1,1,1,A*00");
+//  clienteUDP.print("$ERRPM,E,1,1,1,A*00");
+  clienteUDP.print(msg);
+  clienteUDP.endPacket();
+  clienteUDP.beginPacket(broadcastIp, UDP_PORT);
+//  clienteUDP.print("$ERRPM,E,1,1,1,A*00");
+  clienteUDP.print(msg);
   clienteUDP.endPacket();
   DPRINT("RPM: ");DPRINTLN(RPM);
   /*valores["Amp"]=0;
@@ -177,7 +185,7 @@ boolean publicaRPM() {
 
 boolean calculaAmperio(int i) {
 
-  amperios[i] = analogRead(ampere_PIN); //first read to have date to get averages
+  amperios[i] = analogRead(AMPERE_PIN); //first read to have date to get averages
   DPRINT("amperios: ");DPRINT(amperios[i]);
   DPRINT("\tmedida: ");DPRINTLN(i);
  return true;
