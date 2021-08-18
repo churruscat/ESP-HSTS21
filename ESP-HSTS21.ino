@@ -161,25 +161,14 @@ boolean publicaRPM() {
   if (RPM == HIGH) RPM=1 ;
   else RPM=0;
   sprintf(msg,"$ERRPM,E,%d,1,1,A*00",RPM);
-  clienteUDP.beginPacket(server, UDP_PORT);
-//  clienteUDP.print("$ERRPM,E,1,1,1,A*00");
+/*  clienteUDP.beginPacket(server, UDP_PORT);
   clienteUDP.print(msg);
   clienteUDP.endPacket();
+*/  
   clienteUDP.beginPacket(broadcastIp, UDP_PORT);
-//  clienteUDP.print("$ERRPM,E,1,1,1,A*00");
   clienteUDP.print(msg);
   clienteUDP.endPacket();
   DPRINT("RPM: ");DPRINTLN(RPM);
-  /*valores["Amp"]=0;
-  valores.remove("Amp"); 
-  if (analogRead(RPM_PIN) <2) valores["RPM"]=0; else valores["RPM"]=1;         
-  DPRINT("RPM: ");DPRINTLN(RPM);
-  serializeJson(docJson,datosJson);
-    // and publish them.
-    DPRINTLN("preparing to send");
-    pubresult = enviaDatos(publishTopic,datosJson); 
-    return pubresult;
-  */
   return true;  
 }
 
@@ -199,6 +188,7 @@ boolean publicaAmperio(int num) {
   for (i=0; i<num;i++) {
     total+=amperios[i];
   }
+  num++;
   #ifdef ESP32
      total=total*3.3/(num*4095); // convert into amp
   #else
