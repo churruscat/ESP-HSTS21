@@ -54,7 +54,9 @@
 #define DATOS_SIZE 250
 
 /* ********* these are the sensor variables that will be exposed **********/ 
-int amperios[10];
+
+#define MAX_MEDIDAS 100
+int amperios[MAX_MEDIDAS+1];
 #define JSONBUFFSIZE 350
 #define DATOSJSONSIZE 350   
 char datosJson[DATOS_SIZE];
@@ -114,7 +116,8 @@ int amperes1,amperes2,RPM;
   claves["deviceId"]=DEVICE_ID;
   claves["location"]=LOCATION;
   delay(50);
-  pinMode(RPM_PIN, INPUT); 
+  pinMode(RPM_PIN, INPUT);
+  analogReadResolution(12);
 }
 
 uint32_t ultimaRPM=0,ultimaAmpere=0,nMedidas=0;
@@ -132,7 +135,8 @@ void loop() {
       DPRINT("interval:");DPRINT(INTERVALO_RPM);
       DPRINT("\tmillis :");DPRINT(millis());
       DPRINT("\tultimaRPM :");DPRINTLN(ultimaRPM);
-      publicaRPM();
+      publicaRPM();  // Send it (UDP:4000)
+      if (nMedidas == MAX_MEDIDAS) nMedidas=0;
       calculaAmperio(nMedidas);
       nMedidas++;
       ultimaRPM=millis();
@@ -182,7 +186,7 @@ boolean calculaAmperio(int i) {
 
 boolean publicaAmperio(int num) {
     int i=0;
-    float total;
+    float total=0, media=0;
     boolean pubresult=true;
          
   for (i=0; i<num;i++) {
@@ -190,14 +194,13 @@ boolean publicaAmperio(int num) {
   }
   num++;
   #ifdef ESP32
-     total=total*3.3/(num*4095); // convert into amp
+     media=total*3.3/(num*4095); // convert into amp
   #else
-     total=total*3.3/(num*1023); // convert into amp
+     media=total*3.3/(num*1023); // convert into amp
   #endif
-  total= (total-2.5)*I_NOMINAL/0.625;
-  DPRINT("amperios total: ");DPRINTLN(total);
+  valores["Amp"]= (media-2.5)*I_NOMINAL/0.625;
+  DPRINT("amperios total: ");DPRINTLN(valores["Amp"]);
   DPRINT("\tnum: ");DPRINTLN(num);
-  valores["Amp"]=total/num;
   valores["RPM"]=0;
   valores.remove("RPM");
   serializeJson(docJson,datosJson);
