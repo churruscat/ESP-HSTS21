@@ -117,7 +117,7 @@ int amperes1,amperes2,RPM;
   claves["location"]=LOCATION;
   delay(50);
   pinMode(RPM_PIN, INPUT);
-  analogReadResolution(12);
+  // analogReadResolution(12); // doesnot work in ESP
 }
 
 uint32_t ultimaRPM=0,ultimaAmpere=0,nMedidas=0;
@@ -192,14 +192,13 @@ boolean publicaAmperio(int num) {
   for (i=0; i<num;i++) {
     total+=amperios[i];
   }
-  num++;
   #ifdef ESP32
      media=total*3.3/(num*4095); // convert into amp
   #else
      media=total*3.3/(num*1023); // convert into amp
   #endif
   valores["Amp"]= (media-2.5)*I_NOMINAL/0.625;
-  DPRINT("amperios total: ");DPRINTLN(valores["Amp"]);
+  DPRINT("amperios total: "); DPRINTLN((float)valores["Amp"]);
   DPRINT("\tnum: ");DPRINTLN(num);
   valores["RPM"]=0;
   valores.remove("RPM");
@@ -208,5 +207,4 @@ boolean publicaAmperio(int num) {
   DPRINTLN("preparing to send");
   pubresult = enviaDatos(publishTopic,datosJson); 
   return pubresult;
-  return true;
 }
