@@ -33,7 +33,7 @@
   #define ADC1_CH0 36  // 
   #define ADC1_CH3 39  // to test when engine is started 
   #define AMPERE_PIN ADC1_CH0  
-  #define RPM_PIN    36 // when engine is started  
+  #define RPM_PIN    39 // when engine is started  
 #else    // it is an ESP12 (NodeMCU)
   #include <ESP8266mDNS.h>
   #include <WiFiUdp.h>
