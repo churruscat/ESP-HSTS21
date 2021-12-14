@@ -4,9 +4,10 @@
     v1.0 2021 initial version
     v3.0 2021 Integrate ESP12 and ESP32, use #define ESP32      
 */
-#undef  ESP32
-//#define ESP32  // to use an ESP32 or (if undefined) an ESP12
-#define I_NOMINAL 100 // Nominal amperaje of HSTS21 amperimeter
+//#undef  ESP32
+#define ESP32  // to use an ESP32 or (if undefined) an ESP12
+#define I_NOMINAL 50 // Nominal amperaje of HSTS21 amperimeter
+#define MANUAL_ADJUST  2.5-2.285 // Volts when I=0 (adjust manually)
 #define PRINT_SI
 #ifdef  PRINT_SI
   #define DPRINT(...)    Serial.print(__VA_ARGS__)
@@ -17,6 +18,7 @@
   #define DPRINTLN(...)   //blank line
   #define DPRINTF(...)
 #endif
+
 /*************************************************
  ** -------- Personalised values ----------- **
  * *****************************************/
@@ -24,7 +26,7 @@
 #include <ArduinoJson.h>
 #include "mqtt_mosquitto.h"  /* mqtt values */
 //include "jardn.h"   // I moved these (device) includes to "personal.h"
-#ifdef ESP32
+#if defined(ESP32)
   #include <ESPmDNS.h>
   #include <WiFiUdp.h>
   #include <ArduinoOTA.h>
@@ -70,7 +72,7 @@ void setup() {
 boolean status;
 int amperes1,amperes2,RPM;
     
-  Serial.begin(9600);
+  Serial.begin(111500);
   DPRINTLN("starting ... "); 
   Wire.begin(SDA,SCL);
   claves["deviceId"]=DEVICE_ID;
@@ -174,7 +176,7 @@ boolean publicaRPM() {
 
 boolean calculaAmperio(int i) {
 
-  amperios[i] = analogRead(AMPERE_PIN); //first read to have date to get averages
+  amperios[i] = analogRead(AMPERE_PIN); // raw data (volts from tranducer)
   DPRINT("amperios: ");DPRINT(amperios[i]);
   DPRINT("\tmedida: ");DPRINTLN(i);
  return true;
@@ -182,7 +184,11 @@ boolean calculaAmperio(int i) {
 
 boolean publicaAmperio(int num) {
     int i=0;
+<<<<<<< Updated upstream
     float total;
+=======
+    float total=0, media=0, amperes=0;
+>>>>>>> Stashed changes
     boolean pubresult=true;
          
   for (i=0; i<num;i++) {
@@ -194,8 +200,20 @@ boolean publicaAmperio(int num) {
   #else
      total=total*3.3/(num*1023); // convert into amp
   #endif
+<<<<<<< Updated upstream
   total= (total-2.5)*I_NOMINAL/0.625;
   DPRINT("amperios total: ");DPRINTLN(total);
+=======
+  valores["medida"]=media;
+  //valores["Amp"]= (media-2.5)*I_NOMINAL/0.625;
+  amperes= trunc((media-2.5+MANUAL_ADJUST)*I_NOMINAL/0.625*10)/10; 
+  if ((int(amperes)-amperes)==0) {
+    amperes=amperes+0.01;
+  }
+  valores["Amp"]=amperes;
+  
+  DPRINT("amperios total: "); DPRINTLN((float)valores["Amp"]);
+>>>>>>> Stashed changes
   DPRINT("\tnum: ");DPRINTLN(num);
   valores["Amp"]=total/num;
   valores["RPM"]=0;
@@ -204,6 +222,7 @@ boolean publicaAmperio(int num) {
     // and publish them.
   DPRINTLN("preparing to send");
   pubresult = enviaDatos(publishTopic,datosJson); 
+
   return pubresult;
   return true;
 }

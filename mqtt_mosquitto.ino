@@ -1,6 +1,8 @@
 // Do not forget to include mosquitto.h in main program
 // define callback function 
 void funcallback(char* topic, byte* payload, unsigned int payloadLength);
+#define MQTT_MAX_PACKET_SIZE 455
+#include <PubSubClient.h> // https://github.com/knolleary/pubsubclient
 WiFiClient wifiClient;
 PubSubClient clienteMQTT(server, 1883, funcallback, wifiClient);
 
@@ -111,7 +113,7 @@ boolean loopMQTT() {
 void initManagedDevice() {
  int rReboot,rUpdate,rResponse; 
 
- clienteMQTT.setBufferSize(455);
+ //clienteMQTT.setBufferSize(455);
  rReboot=  clienteMQTT.subscribe(rebootTopic,1);
  rUpdate=  clienteMQTT.subscribe(updateTopic,1);
  rResponse=clienteMQTT.subscribe(responseTopic,1);
