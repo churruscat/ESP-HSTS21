@@ -2,6 +2,8 @@
 #define DEVICE_ID "Pruebas"
 #define TOKEN "Token-de-Pruebas"#define LOCATION "LugarDePrueba"
 */
+#define ESP32  // to use an ESP32 or (if undefined) an ESP12
+#define WITH_VREF
 #define MATERIA_OSCURA
 #define LOCATION "Barco"
 #define DEVICE_ID "AmperioPrueba"

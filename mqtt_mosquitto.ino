@@ -111,7 +111,7 @@ boolean loopMQTT() {
 void initManagedDevice() {
  int rReboot,rUpdate,rResponse; 
 
- clienteMQTT.setBufferSize(455);
+// clienteMQTT.setBufferSize(455);
  rReboot=  clienteMQTT.subscribe(rebootTopic,1);
  rUpdate=  clienteMQTT.subscribe(updateTopic,1);
  rResponse=clienteMQTT.subscribe(responseTopic,1);

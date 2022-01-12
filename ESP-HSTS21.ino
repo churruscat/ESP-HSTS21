@@ -4,9 +4,9 @@
     v1.0 2021 initial version
     v3.0 2021 Integrate ESP12 and ESP32, use #define ESP32      
 */
-#undef  ESP32
-//#define ESP32  // to use an ESP32 or (if undefined) an ESP12
-#define I_NOMINAL 100 // Nominal amperaje of HSTS21 amperimeter
+
+#define I_NOMINAL 50 // Nominal amperaje of HSTS21 amperimeter
+#define MANUAL_ADJUST  2.5-2.285 // Volts when I=0 (adjust manually)
 #define PRINT_SI
 #ifdef  PRINT_SI
   #define DPRINT(...)    Serial.print(__VA_ARGS__)
@@ -17,24 +17,29 @@
   #define DPRINTLN(...)   //blank line
   #define DPRINTF(...)
 #endif
+
 /*************************************************
  ** -------- Personalised values ----------- **
  * *****************************************/
 /* select sensor and its values */ 
+#include "barco.h"
 #include <ArduinoJson.h>
 #include "mqtt_mosquitto.h"  /* mqtt values */
-//include "jardn.h"   // I moved these (device) includes to "personal.h"
-#ifdef ESP32
+
+#if defined(ESP32)
   #include <ESPmDNS.h>
   #include <WiFiUdp.h>
   #include <ArduinoOTA.h>
   #define SCL 22
   #define SDA 21
   #define ADC1_CH0 36  // 
+  #define ADC1_CH6 34  // used for V_REF 
   #define ADC1_CH3 39  // to test when engine is started 
-  #define AMPERE_PIN ADC1_CH0  
-  #define RPM_PIN    39 // when engine is started  
+  #define V_REF ADC1_CH6       //  GPIO 34
+  #define AMPERE_PIN ADC1_CH0  //  GPIO 36
+  #define RPM_PIN    ADC1_CH3 //   GPIO 39 
 #else    // it is an ESP12 (NodeMCU)
+  #undef WITH_VREF
   #include <ESP8266mDNS.h>
   #include <WiFiUdp.h>
   #include <ArduinoOTA.h>
@@ -72,7 +77,7 @@ void setup() {
 boolean status;
 int amperes1,amperes2,RPM;
     
-  Serial.begin(9600);
+  Serial.begin(111500);
   DPRINTLN("starting ... "); 
   Wire.begin(SDA,SCL);
   claves["deviceId"]=DEVICE_ID;
@@ -178,7 +183,11 @@ boolean publicaRPM() {
 
 boolean calculaAmperio(int i) {
 
-  amperios[i] = analogRead(AMPERE_PIN); //first read to have date to get averages
+#ifdef WITH_VREF
+  amperios[i] = analogRead(AMPERE_PIN)-analogRead(V_REF); // If VREF Connected
+#else
+  amperios[i] = analogRead(AMPERE_PIN)-MANUAL_ADJUST; // If VREF adjusted Manually 
+#endif
   DPRINT("amperios: ");DPRINT(amperios[i]);
   DPRINT("\tmedida: ");DPRINTLN(i);
  return true;
@@ -186,7 +195,7 @@ boolean calculaAmperio(int i) {
 
 boolean publicaAmperio(int num) {
     int i=0;
-    float total=0, media=0;
+    float total=0, media=0, amperes=0;
     boolean pubresult=true;
          
   for (i=0; i<num;i++) {
@@ -197,7 +206,13 @@ boolean publicaAmperio(int num) {
   #else
      media=total*3.3/(num*1023); // convert into amp
   #endif
-  valores["Amp"]= (media-2.5)*I_NOMINAL/0.625;
+  valores["medida"]=media;
+  amperes= trunc((media)*I_NOMINAL/0.625*10)/10; // to round to first decimal
+  if ((int(amperes)-amperes)==0) {
+    amperes=amperes+0.01;
+  }
+  valores["Amp"]=amperes;
+  
   DPRINT("amperios total: "); DPRINTLN((float)valores["Amp"]);
   DPRINT("\tnum: ");DPRINTLN(num);
   valores["RPM"]=0;
@@ -206,5 +221,6 @@ boolean publicaAmperio(int num) {
     // and publish them.
   DPRINTLN("preparing to send");
   pubresult = enviaDatos(publishTopic,datosJson); 
+
   return pubresult;
 }
